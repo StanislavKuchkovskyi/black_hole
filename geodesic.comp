@@ -149,9 +149,20 @@ void geodesicRHS(Ray ray, out vec3 d1, out vec3 d2) {
     d2.z = -2.0*dr*dphi/r - 2.0*cos(theta)/(sin(theta)) * dtheta * dphi; // φ Christoffel
 }
 
-// rk4Step – one Euler (forward-difference) step of the geodesic integrator.
-// Note: despite the name "rk4Step" this is currently a first-order (Euler) scheme.
-// Upgrading to true RK4 would improve accuracy at the cost of 4× more RHS evaluations.
+// rk4Step – advances the geodesic state by one affine-parameter step using
+// forward-Euler integration (first-order).
+//
+// NOTE: Despite the function name inherited from the CPU code, this is NOT a
+// true 4th-order Runge-Kutta scheme – it uses a single slope evaluation at
+// the beginning of the step (Euler method).  Upgrading to true RK4 would
+// require four geodesicRHS() evaluations per step:
+//   k1 = f(y_n)
+//   k2 = f(y_n + h/2 · k1)
+//   k3 = f(y_n + h/2 · k2)
+//   k4 = f(y_n + h   · k3)
+//   y_{n+1} = y_n + (h/6)·(k1 + 2k2 + 2k3 + k4)
+// For the step sizes used here (D_LAMBDA = 1e7 m) Euler is sufficient to
+// produce visually plausible results.
 void rk4Step(inout Ray ray, float dL) {
     vec3 k1a, k1b;
     geodesicRHS(ray, k1a, k1b);
